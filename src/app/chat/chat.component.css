@@ -1,0 +1,23 @@
+:host {
+	width: -webkit-fill-available;
+}
+
+.textOnRightSide
+{
+	text-align: right;	
+}
+
+.textOnLeftSide
+{
+	text-align: left;	
+}
+
+.chat-messages-holder
+{
+	display: block;
+}
+
+.chat-messages-holder-son
+{
+	max-width: inherit;
+}

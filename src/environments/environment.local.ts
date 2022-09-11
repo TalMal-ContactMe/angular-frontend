@@ -5,7 +5,7 @@ import { config } from './config.prod';
 export const environment = 
 {
 	production: false,
-  	
+	
   	chatWebSocketUrl: "ws://"+config.dockerMachineIp+":8082",
 	startNewChatUrl: "http://"+config.dockerMachineIp+":8082/contact/create/",
   	//chatWebSocketUrl: "ws://contactForm:8082",
@@ -17,6 +17,7 @@ export const environment =
 	imageFemaleAavatar: "femaleAvatar.png",
 	imageRobotAavatar: "robotAvatar.png",
 	imageOwnerAvatar: "maleAvatar.png",
+	
 };
 
 /*

@@ -1,0 +1,22 @@
+version: "3.7"
+# i am using .env file for environment variables like ${profile}
+
+services:
+  angularFrontend:
+    image: talmal/angular_frontend:0.0.1
+    container_name: angularFrontend
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - /app/node_modules
+    ports:
+      - 4200:4200
+    environment:
+      - spring.cloud.config.enabled=false
+      - spring.profiles.active=${profile}     
+    restart: always
+networks:
+  default:
+    name: contact-network
+    external: true
