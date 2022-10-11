@@ -17,7 +17,7 @@ import { WebsocketService } from '../services/websocket.service';
 export class ChatService 
 {	
 	//TODO: switch env file when running server like: ng serve --configuration=production
-	
+	// TODO: handle network failer, when hosts file does not contain "host.docker.internal -> docker machine ip"
 	private static readonly BROWSER_COOKIE_KEY_USER_CHAT: string = "userCookie";
 	private chatId: string = "";
 	private userName: string = "";
@@ -29,6 +29,7 @@ export class ChatService
 
   	constructor(private websocketService: WebsocketService, private cookieService: CookieService, private http: HttpClient, private router: Router, private urlSerializer: UrlSerializer)
   	{
+		//console.log(process.env.ENVIRONMENT);
 		console.log(environment.startNewChatUrl);
 	}
 	
