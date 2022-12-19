@@ -1,5 +1,6 @@
 :host {
 	width: -webkit-fill-available;
+	width: -moz-available;
 }
 
 .textOnRightSide

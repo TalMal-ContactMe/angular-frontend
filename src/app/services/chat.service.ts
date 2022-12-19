@@ -9,6 +9,7 @@ import { CookieService } from 'ngx-cookie-service';
 import { IContactRequest } from "../models/outbox/ContactRequest";
 import { IChatMessage } from "../models/inbox/ChatMessage";
 import { SenderType } from "../models/SenderType";
+import { MessageIdFlag } from "../models/MessageIdFlag";
 import { WebsocketService } from '../services/websocket.service';
 
 @Injectable({
@@ -16,8 +17,6 @@ import { WebsocketService } from '../services/websocket.service';
 })
 export class ChatService 
 {	
-	//TODO: switch env file when running server like: ng serve --configuration=production
-	// TODO: handle network failer, when hosts file does not contain "host.docker.internal -> docker machine ip"
 	private static readonly BROWSER_COOKIE_KEY_USER_CHAT: string = "userCookie";
 	private chatId: string = "";
 	private userName: string = "";
@@ -28,45 +27,57 @@ export class ChatService
 	private onChatDisconnectFunctionHolder!: () => void;
 
   	constructor(private websocketService: WebsocketService, private cookieService: CookieService, private http: HttpClient, private router: Router, private urlSerializer: UrlSerializer)
-  	{
-		//console.log(process.env.ENVIRONMENT);
-		console.log(environment.startNewChatUrl);
-	}
+  	{}
 	
 	// start a new chat and set cookie for future use 
-  	startChat(name:string, email:string, message:string, avatar:string)
+  	startChat(name:string, email:string, message:string, avatar:string, )
   	{
+		// make room for new chat
 		this.closeExistingChat();
 		
-		var contactRequest = this.buildIContactRequest(name,email,message);
-		//console.log("starting new chat: " + JSON.stringify(contactRequest));
-		
-		// TODO: do i need to unsubscribe from this post call ?
 		// send request to server
-		console.log("in startChat() calling: "+environment.startNewChatUrl);
 		this.http
-	      .post(environment.startNewChatUrl, contactRequest)
+	      .post(environment.startNewChatUrl, this.buildIContactRequest(name,email,message))
 	      .subscribe({
 	        next: (data) => 
 	        {
 				var contactResponse: IChatMessage = JSON.parse(JSON.stringify(data));
-				//console.log(contactResponse);
 				
-				// set user cookie to identify chat 
-				this.cookieService.set(ChatService.BROWSER_COOKIE_KEY_USER_CHAT ,this.buildUserCookie(contactResponse.name,contactResponse.chatId, avatar));
-				
-				// TODO: handle server not available situation and errors
-				// TODO: what about security, authentication
-				this.onChatStartedFunctionHolder();
+				if(contactResponse != null)
+				{
+					// check response for communication failuer
+					if(contactResponse.messageId === MessageIdFlag[MessageIdFlag.COMMUNICATION_ERROR])
+					{
+						console.log("Communication error: "+ contactResponse.message);
+					}
+					else
+					{
+						// set user cookie to identify chat
+						let expiredDate = new Date();
+						expiredDate.setDate(expiredDate.getDate() + environment.chatCoockieExpirationInDays);
+						this.cookieService.set(ChatService.BROWSER_COOKIE_KEY_USER_CHAT ,this.buildUserCookie(contactResponse.name,contactResponse.chatId, avatar), expiredDate);
+						
+						// call back to continue chat open process, bu subscribing to chat web socket
+						this.onChatStartedFunctionHolder();					
+					}	
+				}
+				else
+				{
+					// notify user of problem.
+					console.log("server error");
+					alert("server error");	
+				}
 			},
-	        error: (error) => console.log(error),
-	        complete: () => {
-	          //console.log('startChat complete');
-	        }
+	        error: (error) => 
+	        {
+				console.log(error);
+				alert("Server Error: "+error.name+". Please start over.");
+			},
+	        complete: () => {}
 	      });
 	}
 	
-	// load existing messages and, open a websocket connection to slack 
+	// load existing messages and, open a websocket connection to backend. 
   	public subscribeToChat():Observable<any>|null
 	{
 		var result = null;
@@ -78,7 +89,6 @@ export class ChatService
 			// build target url
 			var tree = this.router.createUrlTree([], {queryParams: {[environment.queryKeyChatId]: chatId}});
   			var urlWithChatId = environment.chatWebSocketUrl + this.urlSerializer.serialize(tree)
-			console.log("in subscribeToChat() calling: "+urlWithChatId);
 			
 			// open web socket connection to url
 			result = this.websocketService.connect(urlWithChatId);
@@ -97,7 +107,7 @@ export class ChatService
 	// send message to websocket to sned it to server side
   	public sendNewMessage(newMessage:string)
   	{
-		this.websocketService.sendMessage(this.buildIChatMessage(newMessage));
+		this.websocketService.sendMessage(this.buildIChatMessage(newMessage, false));
 	}
 
 	/**
@@ -105,8 +115,11 @@ export class ChatService
 	 */
 	public closeExistingChat() 
 	{
-		//console.log("in chat.service.closeExistingChat()");
+		// notify other components in frontend of chat closing, so they can erase the chat.
 		this.onChatDisconnectFunctionHolder();
+		
+		// notify backend of chat closing
+		this.websocketService.sendMessage(this.buildIChatMessage("close chat", true));
 		
 		this.chatId = "";
 		this.userName = "";
@@ -119,16 +132,21 @@ export class ChatService
 		return this.getChatId()?true:false;
 	}
 	
-	private getChatId():string
+	/**
+	 * load chat id from brwoser cookie
+	 */
+	public getChatId():string
 	{
 		if(!this.chatId)
 		{
 			this.loadUserCookie();
 		}
-		
 		return this.chatId;
 	}
 	
+	/**
+	 * load user name from brwoser cookie
+	 */	
 	private getUserName():string
 	{
 		if(!this.userName)
@@ -139,6 +157,9 @@ export class ChatService
 		return this.userName;
 	}
 	
+	/**
+	 * load user avatar from brwoser cookie
+	 */	
 	public getUserAvatar():string
 	{
 		if(!this.avatar)
@@ -150,7 +171,7 @@ export class ChatService
 	}
 	
 	/**
-	load chat details from user cookie 
+	 * load chat details from user cookie 
 	 */
 	private loadUserCookie()
 	{
@@ -167,6 +188,10 @@ export class ChatService
 		}
 	}
 	
+	/**
+	 * compare saved chat id with input chat id
+	 * return true if they are the same, false otherwise.
+	 */
 	public isMessageFromCurrentChat(chatIdToTest: string):boolean
 	{
 		var result = false;
@@ -175,7 +200,7 @@ export class ChatService
 		{
 			result = true;
 		}
-		
+
 		return result;
 	}
 	
@@ -219,11 +244,11 @@ export class ChatService
 		};	
 	}
 	
-	private buildIChatMessage(message:string):IChatMessage
+	private buildIChatMessage(message:string, isCloseChat:boolean):IChatMessage
 	{
 		return {
 			chatId: this.getChatId(),
-			messageId: "00000000", // message id is givven by slack
+			messageId: (isCloseChat)?MessageIdFlag[MessageIdFlag.CLOSE_CHAT]:MessageIdFlag[MessageIdFlag.DEFAULT], // message id is givven by slack
 			name: this.getUserName(),
 			message: message,
 			avatar: this.getUserAvatar(),

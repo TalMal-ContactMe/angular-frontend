@@ -4,7 +4,7 @@
             <div class="col-md-6 col-xl-8 pl-md-3 px-lg-auto px-0 chat-messages-holder-son">
                 <div class="chat-message">
                     <ul class="list-unstyled chat">
-                     	<li *ngFor="let item of messages" class="d-flex justify-content-between mb-4">
+                     	<li *ngFor="let item of getMessages();" class="d-flex justify-content-between mb-4">
 							<img *ngIf = "isShowImage(item.senderType, 'USER')" src="{{item.avatar}}" alt="avatar" class="align-self-start">
 							<div class="chat-body p-3">
 								<div class="header" [ngClass]="{'textOnRightSide' : item.avatarOnLeftSide, 'textOnLeftSide': !item.avatarOnLeftSide}">

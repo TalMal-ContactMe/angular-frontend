@@ -21,12 +21,12 @@ export class ContactFormComponent
 	];
 	
 	public FormData: FormGroup= this.builder.group(
-		{
-			name: new FormControl('', [Validators.required]),
-			message: new FormControl('', [Validators.required]),
-			email: new FormControl('', [Validators.required, Validators.email]),
-			avatar: new FormControl('', [Validators.required])
-		});
+	{
+		name: new FormControl('', [Validators.required]),
+		message: new FormControl('', [Validators.required]),
+		email: new FormControl('', [Validators.required, Validators.email]),
+		avatar: new FormControl('', [Validators.required])
+	});
 	 
   	constructor(private builder: FormBuilder, private chatService: ChatService) 
   	{

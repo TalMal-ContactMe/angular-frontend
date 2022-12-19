@@ -14,6 +14,9 @@ export class WebsocketService
 
 	constructor() {}
 	
+	/**
+	 * close existing web socket and open a new one.
+	 */
 	public connect(url: string):Observable<any>|null
 	{
 		var result = null;
@@ -41,7 +44,7 @@ export class WebsocketService
 	}
 	
 	/**
-		send message to web socket's target
+	 * send message to web socket's target
 	 */
 	public sendMessage(message:IChatMessage) 
 	{
@@ -53,7 +56,6 @@ export class WebsocketService
 	
 	ngOnDestroy() 
 	{
-		console.log("in WebsocketService.ngOnDestroy");
         this.disconnect();
     }
 }

@@ -9,3 +9,8 @@ button.card
 {
     background-color: lightgrey;
 }
+
+.isLoading
+{
+	display:none !important;
+}
