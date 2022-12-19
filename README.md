@@ -1,2 +1,1 @@
-# HelloWorld  
-A frontend for contact-me chat application.
+# Contact-me Angular frontend
